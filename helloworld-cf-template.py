@@ -1,3 +1,7 @@
+from ipaddress import ip_network;
+
+from ipify import get_ip;
+
 from troposphere import (
     Base64,
     ec2,
@@ -8,7 +12,12 @@ from troposphere import (
     Ref,
     Template);
 
+
+
+
 ApplicationPort = "3000";
+
+PublicCidrPort = str(ip_network(get_ip()));
 
 template = Template();
 
@@ -30,7 +39,7 @@ template.add_resource(
             IpProtocol="tcp",
             FromPort="22",
             ToPort="22",
-            CidrIp="0.0.0.0/0"
+            CidrIp=PublicCidrPort
         ),
         ec2.SecurityGroupRule(
             IpProtocol="tcp",
