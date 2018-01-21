@@ -12,8 +12,15 @@ from troposphere import (
     Ref,
     Template);
 
+ApplicationName = "helloworld";
+
 ApplicationPort = "3000";
 
+GithubAccount = "josephassiga";
+
+GithubAsibleURL = "https://github.com/{}/Ansible".format(GithubAccount);
+
+AnsiblePullCmd = "/usr/local/ansible-pull -U {}.yml -i localhost".format(GithubAsibleURL,ApplicationName);
 PublicCidrPort = str(ip_network(get_ip()));
 
 template = Template();
@@ -51,9 +58,9 @@ template.add_resource(
 ud = Base64(Join('\n', [
     "#!/bin/bash",
     "sudo yum install --enablerepo=epel -y nodejs",
-    "wget http://bit.ly/2vESNuc -O /home/ec2-user/helloworld.js",
-    "wget http://bit.ly/2vVvT18 -O /etc/init/helloworld.conf",
-    "start helloworld"
+    "pip install ansible",
+    AnsiblePullCmd,
+    "echo '*/10 * * * * {}' > /etc/cron.d/ansible-pull".format(AnsiblePullCmd)
 ]))
 
 template.add_resource(ec2.Instance(
