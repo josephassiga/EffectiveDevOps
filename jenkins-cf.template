@@ -60,7 +60,7 @@
                             "Effect": "Allow",
                             "Principal": {
                                 "Service": [
-                                    "ec2.awsamazon.com"
+                                    "ec2.amazonaws.com"
                                 ]
                             }
                         }

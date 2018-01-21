@@ -85,7 +85,7 @@ template.add_resource(Role(
           Statement(
               Effect=Allow,
               Action=[AssumeRole],
-              Principal=Principal("Service",["ec2.awsamazon.com"])
+              Principal=Principal("Service",["ec2.amazonaws.com"])
           )
       ]
     )
