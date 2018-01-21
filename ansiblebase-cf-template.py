@@ -20,7 +20,7 @@ GithubAccount = "josephassiga";
 
 GithubAsibleURL = "https://github.com/{}/Ansible".format(GithubAccount);
 
-AnsiblePullCmd = "/usr/local/ansible-pull -U {}.yml -i localhost".format(GithubAsibleURL,ApplicationName);
+AnsiblePullCmd = "/usr/local/ansible-pull -U {} {}.yml -i localhost".format(GithubAsibleURL,ApplicationName);
 PublicCidrPort = str(ip_network(get_ip()));
 
 template = Template();
