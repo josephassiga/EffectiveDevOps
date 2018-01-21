@@ -112,8 +112,8 @@
                                 "#!/bin/bash",
                                 "sudo yum install --enablerepo=epel -y nodejs",
                                 "pip install ansible",
-                                "/usr/local/ansible-pull -U https://github.com/josephassiga/Ansible.yml -i localhost",
-                                "echo '*/10 * * * * /usr/local/ansible-pull -U https://github.com/josephassiga/Ansible.yml -i localhost' > /etc/cron.d/ansible-pull"
+                                "/usr/local/ansible-pull -U https://github.com/josephassiga/Ansible jenkins.yml -i localhost",
+                                "echo '*/10 * * * * /usr/local/ansible-pull -U https://github.com/josephassiga/Ansible jenkins.yml -i localhost' > /etc/cron.d/ansible-pull"
                             ]
                         ]
                     }
