@@ -1,6 +1,7 @@
-from ipaddress import ip_network;
+"""Generating CloudFormation template."""
+from ipaddress import ip_network
 
-from ipify import get_ip;
+from ipify import get_ip
 
 from troposphere import (
     Base64,
@@ -10,114 +11,119 @@ from troposphere import (
     Output,
     Parameter,
     Ref,
-    Template);
+    Template,
+)
 
 from troposphere.iam import (
     InstanceProfile,
     PolicyType as IAMPolicy,
-    Role);
+    Role,
+)
 
 from awacs.aws import (
     Action,
     Allow,
     Policy,
     Principal,
-   Statement);
+    Statement,
+)
 
-from awacs.sts import AssumeRole;
+from awacs.sts import AssumeRole
 
+ApplicationName = "jenkins"
+ApplicationPort = "8080"
 
-ApplicationName = "jenkins";
+GithubAccount = "EffectiveDevOpsWithAWS"
+GithubAnsibleURL = "https://github.com/{}/ansible".format(GithubAccount)
 
-ApplicationPort = "8080";
+AnsiblePullCmd = \
+    "/usr/local/bin/ansible-pull -U {} {}.yml -i localhost".format(
+        GithubAnsibleURL,
+        ApplicationName
+    )
 
-GithubAccount = "josephassiga";
+PublicCidrIp = str(ip_network(get_ip()))
 
-GithubAsibleURL = "https://github.com/{}/Ansible".format(GithubAccount);
+t = Template()
 
-AnsiblePullCmd = "/usr/local/ansible-pull -U {} {}.yml -i localhost".format(GithubAsibleURL,ApplicationName);
-PublicCidrPort = str(ip_network(get_ip()));
+t.add_description("Effective DevOps in AWS: HelloWorld web application")
 
-template = Template();
-
-template.add_description("Effective DEVOPS in AWS : Hello World Web Application");
-
-template.add_parameter(Parameter(
+t.add_parameter(Parameter(
     "KeyPair",
     Description="Name of an existing EC2 KeyPair to SSH",
     Type="AWS::EC2::KeyPair::KeyName",
-    ConstraintDescription="Must be the name of an existing EC2 KeyPair."
-));
+    ConstraintDescription="must be the name of an existing EC2 KeyPair.",
+))
 
-template.add_resource(
-    ec2.SecurityGroup(
-        "SecurityGroup",
-        GroupDescription="Allow SSH and TCP/{}".format(ApplicationPort),
-        SecurityGroupIngress=[
-            ec2.SecurityGroupRule(
-                IpProtocol="tcp",
-                FromPort="22",
-                ToPort="22",
-                CidrIp=PublicCidrPort
-            ),
-            ec2.SecurityGroupRule(
-                IpProtocol="tcp",
-                FromPort=ApplicationPort,
-                ToPort=ApplicationPort,
-                CidrIp="0.0.0.0/0"
-            )
-        ]
-    )
-);
+t.add_resource(ec2.SecurityGroup(
+    "SecurityGroup",
+    GroupDescription="Allow SSH and TCP/{} access".format(ApplicationPort),
+    SecurityGroupIngress=[
+        ec2.SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort="22",
+            ToPort="22",
+            CidrIp=PublicCidrIp,
+        ),
+        ec2.SecurityGroupRule(
+            IpProtocol="tcp",
+            FromPort=ApplicationPort,
+            ToPort=ApplicationPort,
+            CidrIp="0.0.0.0/0",
+        ),
+    ],
+))
 
 ud = Base64(Join('\n', [
     "#!/bin/bash",
-    "sudo yum install --enablerepo=epel -y nodejs",
+    "yum install --enablerepo=epel -y git",
     "pip install ansible",
     AnsiblePullCmd,
     "echo '*/10 * * * * {}' > /etc/cron.d/ansible-pull".format(AnsiblePullCmd)
 ]))
 
-template.add_resource(Role(
+t.add_resource(Role(
     "Role",
     AssumeRolePolicyDocument=Policy(
-      Statement=[
-          Statement(
-              Effect=Allow,
-              Action=[AssumeRole],
-              Principal=Principal("Service",["ec2.amazonaws.com"])
-          )
-      ]
+        Statement=[
+            Statement(
+                Effect=Allow,
+                Action=[AssumeRole],
+                Principal=Principal("Service", ["ec2.amazonaws.com"])
+            )
+        ]
     )
-));
+))
 
-template.add_resource(InstanceProfile(
+t.add_resource(InstanceProfile(
     "InstanceProfile",
     Path="/",
     Roles=[Ref("Role")]
-));
+))
 
-template.add_resource(ec2.Instance(
+t.add_resource(ec2.Instance(
     "instance",
-    ImageId="ami-d834aba1",
+    ImageId="ami-a4c7edb2",
     InstanceType="t2.micro",
     SecurityGroups=[Ref("SecurityGroup")],
     KeyName=Ref("KeyPair"),
     UserData=ud,
-    IamInstanceProfile=Ref("InstanceProfile")
-));
+    IamInstanceProfile=Ref("InstanceProfile"),
+))
 
+t.add_output(Output(
+    "InstancePublicIp",
+    Description="Public IP of our instance.",
+    Value=GetAtt("instance", "PublicIp"),
+))
 
-template.add_output(Output(
-    "InstancePulicIp",
-    Description="Public Ip of our Instance",
-    Value=GetAtt("instance", "PublicIp")
-));
-
-template.add_output(Output(
+t.add_output(Output(
     "WebUrl",
-    Description="Application Endpoint",
-    Value=Join("", ["http:/", GetAtt("instance", "PublicDnsName"), ":", ApplicationPort])
-));
+    Description="Application endpoint",
+    Value=Join("", [
+        "http://", GetAtt("instance", "PublicDnsName"),
+        ":", ApplicationPort
+    ]),
+))
 
-print(template.to_json());
+print t.to_json();
